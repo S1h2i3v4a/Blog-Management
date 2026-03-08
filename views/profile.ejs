@@ -1,0 +1,55 @@
+<%- include('layout/header') %>
+
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white text-center">
+          User Profile
+        </div>
+
+        <div class="card-body">
+          <form action="/updateProfile" method="POST">
+            <div class="mb-3">
+              <label class="form-label">Name</label>
+              <input
+                type="text"
+                class="form-control"
+                name="name"
+                value="<%= user.name %>"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                name="email"
+                value="<%= user.email %>"
+                readonly
+              />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">New Password</label>
+              <input
+                type="password"
+                class="form-control"
+                name="password"
+                placeholder="Leave blank to keep current password"
+              />
+            </div>
+
+            <button type="submit" class="btn btn-success w-100">
+              Update Profile
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('layout/footer') %>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Create Post</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body class="bg-light">
+    <div class="container mt-5">
+      <div class="row justify-content-center">
+        <div class="col-md-8">
+          <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+              <h4>Create New Post</h4>
+            </div>
+
+            <div class="card-body">
+              <!-- ✅ FORM : TEXT ONLY -->
+              <form
+                action="/create-post"
+                method="POST"
+                enctype="multipart/form-data"
+              >
+                <div class="mb-3">
+                  <label>Title</label>
+                  <input
+                    type="text"
+                    name="title"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label>Content</label>
+                  <textarea
+                    name="content"
+                    class="form-control"
+                    rows="5"
+                    required
+                  ></textarea>
+                </div>
+
+                <!-- ✅ FILE INPUT (NOT PART OF SUBMIT) -->
+                <div class="mb-3">
+                  <label>Post Image</label>
+                  <input
+                    type="file"
+                    id="imageInput"
+                    class="form-control"
+                    accept="image/*"
+                  />
+                </div>
+                <label>OR Paste Image URL</label>
+                <input type="text" name="imageUrl" placeholder="https://..." />
+
+                <div class="mb-3">
+                  <label>Tags (comma separated)</label>
+                  <input type="text" name="tags" class="form-control" />
+                </div>
+
+                <button class="btn btn-primary">Create Post</button>
+                <a href="/dashboard" class="btn btn-secondary ms-2">Back</a>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const imageInput = document.getElementById("imageInput");
+      const form = document.querySelector("form");
+
+      imageInput.addEventListener("change", async () => {
+        const file = imageInput.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("image", file);
+
+        const res = await fetch("/upload-post-image", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          let hidden = document.querySelector('input[name="imageUrl"]');
+          if (!hidden) {
+            hidden = document.createElement("input");
+            hidden.type = "hidden";
+            hidden.name = "imageUrl";
+            form.appendChild(hidden);
+          }
+          hidden.value = data.imageUrl;
+        }
+      });
+    </script>
+  </body>
+</html>

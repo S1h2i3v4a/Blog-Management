@@ -1,0 +1,63 @@
+<header class="p-3 text-bg-dark">
+  <div class="container">
+    <div
+      class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start"
+    >
+      <!-- Logo + Title -->
+      <a
+        href="/"
+        class="d-flex align-items-center mb-2 mb-lg-0 text-white text-decoration-none me-lg-3"
+      >
+        <svg
+          class="bi me-2"
+          width="40"
+          height="32"
+          role="img"
+          aria-label="Bootstrap"
+        >
+          <use xlink:href="#bootstrap"></use>
+        </svg>
+        <span class="fs-4 fw-semibold"> Blog Management System </span>
+      </a>
+
+      <!-- Navigation -->
+      <ul
+        class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0"
+      >
+        <li>
+          <a href="/dashboard" class="nav-link px-2 text-white"> Dashboard </a>
+        </li>
+        <li>
+          <a href="/create-post" class="nav-link px-2 text-white"> Posts </a>
+        </li>
+        <li>
+          <a href="/" class="nav-link px-2 text-white">All Post </a>
+        </li>
+        <li>
+          <a href="/admin/users" class="nav-link px-2 text-white"> Users </a>
+        </li>
+        <li>
+          <a href="/admin/settings" class="nav-link px-2 text-warning">
+            Settings
+          </a>
+        </li>
+      </ul>
+
+      <!-- Search -->
+      <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3" role="search">
+        <input
+          type="search"
+          class="form-control form-control-dark text-bg-dark"
+          placeholder="Search posts..."
+          aria-label="Search"
+        />
+      </form>
+
+      <!-- Auth Buttons -->
+      <div class="text-end">
+        <a href="/login" class="btn btn-outline-light me-2"> Login </a>
+        <a href="/register" class="btn btn-warning"> Sign up </a>
+      </div>
+    </div>
+  </div>
+</header>
