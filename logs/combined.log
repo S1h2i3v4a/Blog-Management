@@ -1,0 +1,121 @@
+2026-03-10T19:57:31.952Z [[32minfo[39m]: [32mServer is running on port 3000[39m
+2026-03-10T19:57:32.412Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T19:58:02.349Z [[31merror[39m]: [31munhandledRejection: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/[39m
+[31mMongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/[39m
+[31m    at _handleConnectionErrors (G:\BMS\node_modules\mongoose\lib\connection.js:1169:11)[39m
+[31m    at NativeConnection.openUri (G:\BMS\node_modules\mongoose\lib\connection.js:1100:11)[39m
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (G:\BMS\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (G:\BMS\node_modules\mongoose\lib\connection.js:1100:11)
+2026-03-10T19:58:37.798Z [[32minfo[39m]: [32mServer is running on port 3000[39m
+2026-03-10T19:58:38.349Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T19:58:59.243Z [[32minfo[39m]: [32mServer is running on port 3000[39m
+2026-03-10T19:58:59.960Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T19:59:29.786Z [[32minfo[39m]: [32mServer is running on port 3000[39m
+2026-03-10T19:59:31.331Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:00:00.407Z [[31merror[39m]: [31munhandledRejection: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/[39m
+[31mMongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/[39m
+[31m    at _handleConnectionErrors (G:\BMS\node_modules\mongoose\lib\connection.js:1169:11)[39m
+[31m    at NativeConnection.openUri (G:\BMS\node_modules\mongoose\lib\connection.js:1100:11)[39m
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (G:\BMS\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (G:\BMS\node_modules\mongoose\lib\connection.js:1100:11)
+2026-03-10T20:00:29.577Z [[32minfo[39m]: [32mServer is running on port 3000[39m
+2026-03-10T20:00:29.841Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:00:48.550Z [[31merror[39m]: [31mError checking blog settings[39m
+2026-03-10T20:00:48.567Z [[31merror[39m]: [31mOperation `blogsettings.findOne()` buffering timed out after 10000ms[39m
+MongooseError: Operation `blogsettings.findOne()` buffering timed out after 10000ms
+    at Timeout._onTimeout (G:\BMS\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:131:25)
+    at listOnTimeout (node:internal/timers:588:17)
+    at process.processTimers (node:internal/timers:523:7)
+2026-03-10T20:01:00.312Z [[31merror[39m]: [31munhandledRejection: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/[39m
+[31mMongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/[39m
+[31m    at _handleConnectionErrors (G:\BMS\node_modules\mongoose\lib\connection.js:1169:11)[39m
+[31m    at NativeConnection.openUri (G:\BMS\node_modules\mongoose\lib\connection.js:1100:11)[39m
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (G:\BMS\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (G:\BMS\node_modules\mongoose\lib\connection.js:1100:11)
+2026-03-10T20:02:32.043Z [[32minfo[39m]: [32mServer is running on port 3000[39m
+2026-03-10T20:02:41.764Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:03:07.373Z [[31merror[39m]: [31mG:\BMS\views\profile.ejs:19[39m
+[31m    17|                 class="form-control"[39m
+[31m    18|                 name="name"[39m
+[31m >> 19|                 value="<%= user.name %>"[39m
+[31m    20|                 required[39m
+[31m    21|               />[39m
+[31m    22|             </div>[39m
+
+[31muser is not defined[39m
+ReferenceError: G:\BMS\views\profile.ejs:19
+    17|                 class="form-control"
+    18|                 name="name"
+ >> 19|                 value="<%= user.name %>"
+    20|                 required
+    21|               />
+    22|             </div>
+
+user is not defined
+    at eval ("G:\\BMS\\views\\profile.ejs":13:26)
+    at profile (G:\BMS\node_modules\ejs\lib\cjs\ejs.js:643:23)
+    at tryHandleCache (G:\BMS\node_modules\ejs\lib\cjs\ejs.js:254:42)
+    at ejs.renderFile [as engine] (G:\BMS\node_modules\ejs\lib\cjs\ejs.js:447:12)
+    at View.render (G:\BMS\node_modules\express\lib\view.js:139:8)
+    at tryRender (G:\BMS\node_modules\express\lib\application.js:627:10)
+    at Function.render (G:\BMS\node_modules\express\lib\application.js:574:3)
+    at ServerResponse.render (G:\BMS\node_modules\express\lib\response.js:923:7)
+    at profile (G:\BMS\controllers\userController.js:114:9)
+    at Layer.handleRequest (G:\BMS\node_modules\router\lib\layer.js:152:17)
+2026-03-10T20:06:10.412Z [[32minfo[39m]: [32mServer is running on port 3000[39m
+2026-03-10T20:06:27.273Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:06:31.683Z [[31merror[39m]: [31mG:\BMS\views\profile.ejs:19[39m
+[31m    17|                 class="form-control"[39m
+[31m    18|                 name="name"[39m
+[31m >> 19|                 value="<%= user.name %>"[39m
+[31m    20|                 required[39m
+[31m    21|               />[39m
+[31m    22|             </div>[39m
+
+[31muser is not defined[39m
+ReferenceError: G:\BMS\views\profile.ejs:19
+    17|                 class="form-control"
+    18|                 name="name"
+ >> 19|                 value="<%= user.name %>"
+    20|                 required
+    21|               />
+    22|             </div>
+
+user is not defined
+    at eval ("G:\\BMS\\views\\profile.ejs":13:26)
+    at profile (G:\BMS\node_modules\ejs\lib\cjs\ejs.js:643:23)
+    at tryHandleCache (G:\BMS\node_modules\ejs\lib\cjs\ejs.js:254:42)
+    at ejs.renderFile [as engine] (G:\BMS\node_modules\ejs\lib\cjs\ejs.js:447:12)
+    at View.render (G:\BMS\node_modules\express\lib\view.js:139:8)
+    at tryRender (G:\BMS\node_modules\express\lib\application.js:627:10)
+    at Function.render (G:\BMS\node_modules\express\lib\application.js:574:3)
+    at ServerResponse.render (G:\BMS\node_modules\express\lib\response.js:923:7)
+    at profile (G:\BMS\controllers\userController.js:114:9)
+    at Layer.handleRequest (G:\BMS\node_modules\router\lib\layer.js:152:17)
+2026-03-10T20:08:24.280Z [[32minfo[39m]: [32mServer is running on port 3000[39m
+2026-03-10T20:11:34.460Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:11:41.198Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:11:47.649Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:11:53.976Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:12:06.547Z [[31merror[39m]: [31mnext is not a function[39m
+TypeError: next is not a function
+    at model.<anonymous> (G:\BMS\models\userModel.js:46:3)
+    at Kareem.execPre (G:\BMS\node_modules\kareem\index.js:63:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async model.$__save (G:\BMS\node_modules\mongoose\lib\model.js:369:5)
+    at async model.save (G:\BMS\node_modules\mongoose\lib\model.js:609:5)
+    at async updateProfile (G:\BMS\controllers\userController.js:143:5)
+2026-03-10T20:13:21.702Z [[32minfo[39m]: [32mServer is running on port 3000[39m
+2026-03-10T20:13:49.812Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:14:00.507Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:14:10.176Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:14:14.680Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:14:39.853Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:14:47.088Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:14:50.748Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:14:53.686Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:16:57.072Z [[32minfo[39m]: [32mUser connected[39m
+2026-03-10T20:17:05.057Z [[32minfo[39m]: [32mUser connected[39m

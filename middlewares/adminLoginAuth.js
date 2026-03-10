@@ -1,15 +1,14 @@
+const logger = require("../utils/logger");
+
 // CHECK IF USER IS LOGGED IN (ADMIN)
 const isLogin = (req, res, next) => {
   try {
-    //console.log("Admin is logged in:", req.session.user_id);
-    if (req.session.user_id && req.session.is_admin === true) {
-      return next(); // ✅ allow access
-    } else {
-      //console.log("Admin not logged in, redirecting to login");
-      return res.redirect("/login"); // ✅ stop here
+    if (req.session?.user_id && req.session?.is_admin === true) {
+      return next();
     }
+    return res.redirect("/login");
   } catch (error) {
-    console.error("Error verifying login:", error);
+    logger.error("Error verifying login", { error });
     return res.status(500).send("Error verifying login");
   }
 };
@@ -17,12 +16,12 @@ const isLogin = (req, res, next) => {
 // CHECK IF USER IS LOGGED OUT
 const isLogout = (req, res, next) => {
   try {
-    if (req.session.user_id) {
-      return res.redirect("/dashboard"); // ✅ stop
+    if (req.session?.user_id) {
+      return res.redirect("/dashboard");
     }
-    return next(); // ✅ continue
+    return next();
   } catch (error) {
-    console.error("Error verifying login:", error);
+    logger.error("Error verifying login", { error });
     return res.status(500).send("Error verifying login");
   }
 };

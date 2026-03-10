@@ -80,9 +80,18 @@
         <div id="commentList">
 
           <% post.comments?.forEach(c => { %>
-            <div class="mb-3 border-bottom pb-2">
+            <div class="mb-3 border-bottom pb-2" data-comment-id="<%= c._id %>">
               <strong><%= c.name || "Anonymous" %></strong>
               <p class="mb-1 text-muted"><%= c.text %></p>
+
+              <div class="d-flex gap-2 align-items-center mb-2">
+                <button class="btn btn-sm btn-outline-success comment-like" data-post-id="<%= post._id %>" data-comment-id="<%= c._id %>">
+                  👍 <span class="comment-like-count"><%= c.likes || 0 %></span>
+                </button>
+                <button class="btn btn-sm btn-outline-danger comment-dislike" data-post-id="<%= post._id %>" data-comment-id="<%= c._id %>">
+                  👎 <span class="comment-dislike-count"><%= c.dislikes || 0 %></span>
+                </button>
+              </div>
 
               <!-- Reply Form -->
               <form action="/do-reply" method="POST" class="replyForm mt-2">
@@ -138,10 +147,12 @@
   </div>
 </div>
 
+<script src="/socket.io/socket.io.js"></script>
 <script>
+  const socket = io();
 
-const commentForm = document.getElementById("commentForm");
-const commentList = document.getElementById("commentList");
+  const commentForm = document.getElementById("commentForm");
+  const commentList = document.getElementById("commentList");
 
 /* COMMENT AJAX */
 commentForm.addEventListener("submit", async (e) => {
@@ -229,6 +240,32 @@ function attachReplyListener(form) {
 /* Existing reply forms */
 document.querySelectorAll(".replyForm").forEach(form => {
   attachReplyListener(form);
+});
+
+// Like/dislike comment real-time updates
+function attachCommentLikeListeners(container) {
+  container.addEventListener("click", (event) => {
+    const likeBtn = event.target.closest(".comment-like");
+    const dislikeBtn = event.target.closest(".comment-dislike");
+    if (!likeBtn && !dislikeBtn) return;
+
+    const postId = (likeBtn || dislikeBtn).getAttribute("data-post-id");
+    const commentId = (likeBtn || dislikeBtn).getAttribute("data-comment-id");
+    const eventName = likeBtn ? "comment:like" : "comment:dislike";
+
+    socket.emit(eventName, { postId, commentId });
+  });
+}
+
+attachCommentLikeListeners(commentList);
+
+socket.on("comment:updated", (data) => {
+  const commentEl = document.querySelector(`[data-comment-id="${data.commentId}"]`);
+  if (!commentEl) return;
+  const likeCount = commentEl.querySelector(".comment-like-count");
+  const dislikeCount = commentEl.querySelector(".comment-dislike-count");
+  if (likeCount) likeCount.textContent = data.likes;
+  if (dislikeCount) dislikeCount.textContent = data.dislikes;
 });
 
 </script>

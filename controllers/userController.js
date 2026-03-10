@@ -1,112 +1,178 @@
-const user = require("../models/userModel");
-const BlogSetting = require("../models/blogSettingModel");
 const bcrypt = require("bcrypt");
-const Post = require("../models/PostModel");
-const nodeMailer = require("nodemailer");
+const jwt = require("jsonwebtoken");
 const randomstring = require("randomstring");
-const config = require("../config/config");
 
-const loadLogin = async (req, res) => {
+const User = require("../models/userModel");
+const Post = require("../models/PostModel");
+const config = require("../config/config");
+const logger = require("../utils/logger");
+const { generateToken } = require("../middlewares/auth");
+
+const loadLogin = async (req, res, next) => {
   try {
     res.render("login");
   } catch (error) {
-    console.error("Error loading login page:", error);
-    res.status(500).send("Error loading login page");
+    next(error);
   }
 };
-const verifyLogin = async (req, res) => {
+
+const loadRegister = async (req, res, next) => {
+  try {
+    res.render("register");
+  } catch (error) {
+    next(error);
+  }
+};
+
+const register = async (req, res, next) => {
+  try {
+    const { name, email, password } = req.body;
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      const err = new Error("Email is already registered");
+      err.statusCode = 409;
+      return next(err);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const hasAnyUser = await User.exists({});
+    const role = hasAnyUser ? "user" : "admin";
+
+    const created = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      is_admin: role === "admin",
+    });
+
+    const token = generateToken(created);
+    res.cookie("token", token, {
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 2, // 2 hours
+    });
+
+    res.redirect(role === "admin" ? "/dashboard" : "/profile");
+  } catch (error) {
+    next(error);
+  }
+};
+
+const verifyLogin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    const userData = await user.findOne({ email: email });
+    const userData = await User.findOne({ email: email.toLowerCase().trim() });
     if (!userData) {
-      return res.render("login", { message: "Invalid email or password" });
+      const err = new Error("Invalid email or password");
+      err.statusCode = 401;
+      return next(err);
     }
 
     const passwordMatch = await bcrypt.compare(password, userData.password);
     if (!passwordMatch) {
-      return res.render("login", { message: "Invalid email or password" });
+      const err = new Error("Invalid email or password");
+      err.statusCode = 401;
+      return next(err);
     }
 
-    // Password matches, set session
-    req.session.user_id = userData._id;
-    req.session.is_admin = Boolean(userData.is_admin);
+    const token = generateToken(userData);
+    res.cookie("token", token, {
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 2, // 2 hours
+    });
 
-    // Redirect based on role
-    if (userData.is_admin === false) {
-      return res.redirect("/profile");
-    } else {
+    // Keep session for legacy templates
+    req.session = req.session || {};
+    req.session.user_id = userData._id;
+    req.session.is_admin = userData.role === "admin";
+
+    if (userData.role === "admin") {
       return res.redirect("/dashboard");
     }
+
+    return res.redirect("/profile");
   } catch (error) {
-    console.error("Error verifying login:", error);
-    res.status(500).send("Error verifying login");
+    next(error);
   }
 };
 
-const dashboard = async (req, res) => {
+const dashboard = async (req, res, next) => {
   try {
-    console.log("Admin dashboard accessed");
+    logger.info("Admin dashboard accessed", { user: req.user?.email });
     res.render("admin/dashboard", {
       message: req.query.message || null,
     });
   } catch (error) {
-    console.error("Error loading dashboard:", error);
-    res.status(500).send("Error loading dashboard");
-  }
-};
-const profile = async (req, res) => {
-  try {
-    res.render("profile");
-  } catch (error) {
-    console.error("Error loading profile:", error);
-    res.status(500).send("Error loading profile");
+    next(error);
   }
 };
 
-const updateProfile = async (req, res) => {
+const profile = async (req, res, next) => {
   try {
-    const { name, email } = req.body;
-    const userId = req.session.user_id;
-    const userData = await user.findById(userId);
+    const userId = req.user?._id || req.session?.user_id;
+    const user = await User.findById(userId);
 
-    if (!userData) {
-      return res.status(404).send("User not found");
+    if (!user) {
+      const err = new Error("User not found");
+      err.statusCode = 404;
+      return next(err);
     }
 
-    const updateData = { name, email };
+    res.render("profile", { user });
+  } catch (error) {
+    next(error);
+  }
+};
 
-    await user.findByIdAndUpdate(userId, updateData);
+const updateProfile = async (req, res, next) => {
+  try {
+    const { name, email } = req.body;
+    const userId = req.user?._id || req.session?.user_id;
+    const userData = await User.findById(userId);
+
+    if (!userData) {
+      const err = new Error("User not found");
+      err.statusCode = 404;
+      return next(err);
+    }
+
+    userData.name = name;
+    userData.email = email;
+    await userData.save();
 
     res.redirect("/profile");
   } catch (error) {
-    console.error("Error updating profile:", error);
-    res.status(500).send("Error updating profile");
+    next(error);
   }
 };
-const logout = async (req, res) => {
+
+const logout = async (req, res, next) => {
   try {
-    req.session.destroy();
+    res.clearCookie("token");
+    if (req.session) {
+      req.session.destroy(() => {});
+    }
     res.redirect("/login");
   } catch (error) {
-    console.error("Error during logout:", error);
-    res.status(500).send("Error during logout");
+    next(error);
   }
 };
-const loadCreatePost = async (req, res) => {
+
+const loadCreatePost = async (req, res, next) => {
   try {
     res.render("admin/create-post");
   } catch (error) {
-    console.error("Error loading create post page:", error);
-    res.status(500).send("Error loading create post page");
+    next(error);
   }
 };
-const createPost = async (req, res) => {
-  const { title, content, tags, imageUrl } = req.body;
 
+const createPost = async (req, res, next) => {
   try {
-    let finalImage = "";
+    const { title, content, tags, imageUrl } = req.body;
 
-    // ✅ Priority: local file > URL
+    let finalImage = "";
     if (req.file) {
       finalImage = "/images/" + req.file.filename;
     } else if (imageUrl && imageUrl.trim() !== "") {
@@ -133,29 +199,34 @@ const createPost = async (req, res) => {
 
     res.render("admin/dashboard", { message: "Post Created Successfully" });
   } catch (error) {
-    console.error("Error creating post:", error);
-    res.status(500).send("Error creating post");
-  }
-};
-const loadForgotPassword = async (req, res) => {
-  try {
-    res.render("forgot-password");
-  } catch (error) {
-    console.error("Error loading forgot password page:", error);
-    res.status(500).send("Error loading forgot password page");
+    next(error);
   }
 };
 
-const forgetPasswordVerify = async (req, res) => {
+const loadForgotPassword = async (req, res, next) => {
+  try {
+    res.render("forgot-password");
+  } catch (error) {
+    next(error);
+  }
+};
+
+const forgetPasswordVerify = async (req, res, next) => {
   try {
     const { email } = req.body;
-    const userData = await user.findOne({ email: email });
+    const userData = await User.findOne({ email: email.toLowerCase().trim() });
     if (!userData) {
       return res.render("forgot-password", { message: "Email not found" });
     }
+
     const randomString = randomstring.generate();
-    await user.updateOne({ email: email }, { $set: { token: randomString } });
-    const transporter = nodeMailer.createTransport({
+    const expires = new Date(Date.now() + config.resetPasswordTokenExpiryMs);
+
+    userData.resetPasswordToken = randomString;
+    userData.resetPasswordExpires = expires;
+    await userData.save();
+
+    const transporter = require("nodemailer").createTransport({
       host: "smtp.gmail.com",
       port: 587,
       secure: false,
@@ -165,15 +236,17 @@ const forgetPasswordVerify = async (req, res) => {
         pass: config.Password,
       },
     });
+
     const mailOptions = {
       from: config.emailUser,
       to: email,
       subject: "Reset Password",
-      html: `<p>Click <a href="http://localhost:3000/reset-password?token=${randomString}">here</a> to reset your password.</p>`,
+      html: `<p>Click <a href="http://localhost:3000/reset-password?token=${randomString}">here</a> to reset your password. The link expires in 1 hour.</p>`,
     };
-    transporter.sendMail(mailOptions, (error, info) => {
+
+    transporter.sendMail(mailOptions, (error) => {
       if (error) {
-        console.error("Error sending email:", error);
+        logger.error("Error sending password reset email", { error });
         return res.render("forgot-password", {
           message: "Error sending reset link",
         });
@@ -183,26 +256,31 @@ const forgetPasswordVerify = async (req, res) => {
       });
     });
   } catch (error) {
-    console.error("Error verifying forgot password:", error);
-    res.status(500).send("Error verifying forgot password");
+    next(error);
   }
 };
 
-const loadResetPassword = async (req, res) => {
+const loadResetPassword = async (req, res, next) => {
   try {
     const { token } = req.query;
-    const userData = await user.findOne({ token: token });
+    const userData = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: new Date() },
+    });
+
     if (!userData) {
-      return res.render("reset-password", { message: "Invalid token" });
+      return res.render("reset-password", {
+        message: "Invalid or expired token",
+      });
     }
+
     res.render("reset-password", { user_id: userData._id });
   } catch (error) {
-    console.error("Error loading reset password page:", error);
-    res.status(500).send("Error loading reset password page");
+    next(error);
   }
 };
 
-const resetPassword = async (req, res) => {
+const resetPassword = async (req, res, next) => {
   try {
     const { user_id, password, confirmPassword } = req.body;
 
@@ -212,21 +290,32 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await user.findByIdAndUpdate(user_id, {
-      password: hashedPassword,
-      token: "",
+    const userData = await User.findOne({
+      _id: user_id,
+      resetPasswordExpires: { $gt: new Date() },
     });
+
+    if (!userData) {
+      return res.render("reset-password", {
+        message: "Invalid or expired token",
+      });
+    }
+
+    userData.password = await bcrypt.hash(password, 10);
+    userData.resetPasswordToken = "";
+    userData.resetPasswordExpires = null;
+    await userData.save();
 
     res.render("login", { message: "Password reset successfully" });
   } catch (error) {
-    console.error("Error resetting password:", error);
-    res.status(500).send("Error resetting password");
+    next(error);
   }
 };
 
 module.exports = {
   loadLogin,
+  loadRegister,
+  register,
   verifyLogin,
   dashboard,
   profile,

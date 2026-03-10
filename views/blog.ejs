@@ -19,9 +19,9 @@
             <div class="card h-100 shadow-sm">
 
               <!-- IMAGE (OPTIONAL) -->
-              <% if (post.image && post.image.trim() !== "") { %>
+              <% if (post.imageUrl && post.imageUrl.trim() !== "") { %>
                 <img 
-                  src="<%= post.image %>" 
+                  src="<%= post.imageUrl %>" 
                   class="card-img-top"
                   style="height: 200px; object-fit: cover;"
                   alt="Post Image">
@@ -48,6 +48,26 @@
     <% } %>
 
   </div>
+
+  <% if (pagination && pagination.totalPages > 1) { %>
+    <nav aria-label="Post pagination" class="mt-4">
+      <ul class="pagination justify-content-center">
+        <li class="page-item <%= pagination.page <= 1 ? "disabled" : "" %>">
+          <a class="page-link" href="/?page=<%= pagination.page - 1 %>&limit=<%= pagination.limit %>">Previous</a>
+        </li>
+
+        <% for (let p = 1; p <= pagination.totalPages; p++) { %>
+          <li class="page-item <%= p === pagination.page ? "active" : "" %>">
+            <a class="page-link" href="/?page=<%= p %>&limit=<%= pagination.limit %>"><%= p %></a>
+          </li>
+        <% } %>
+
+        <li class="page-item <%= pagination.page >= pagination.totalPages ? "disabled" : "" %>">
+          <a class="page-link" href="/?page=<%= pagination.page + 1 %>&limit=<%= pagination.limit %>">Next</a>
+        </li>
+      </ul>
+    </nav>
+  <% } %>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>

@@ -1,0 +1,23 @@
+2026-03-10T19:57:49.526Z [[31merror[39m]: [31muncaughtException: listen EADDRINUSE: address already in use :::3000[39m
+[31mError: listen EADDRINUSE: address already in use :::3000[39m
+[31m    at Server.setupListenHandle [as _listen2] (node:net:1940:16)[39m
+[31m    at listenInCluster (node:net:1997:12)[39m
+[31m    at Server.listen (node:net:2102:7)[39m
+[31m    at Object.<anonymous> (G:\BMS\index.js:137:8)[39m
+[31m    at Module._compile (node:internal/modules/cjs/loader:1688:14)[39m
+[31m    at Object..js (node:internal/modules/cjs/loader:1820:10)[39m
+[31m    at Module.load (node:internal/modules/cjs/loader:1423:32)[39m
+[31m    at Function._load (node:internal/modules/cjs/loader:1246:12)[39m
+[31m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+[31m    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)[39m
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Object.<anonymous> (G:\BMS\index.js:137:8)
+    at Module._compile (node:internal/modules/cjs/loader:1688:14)
+    at Object..js (node:internal/modules/cjs/loader:1820:10)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)

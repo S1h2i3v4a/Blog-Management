@@ -1,7 +1,8 @@
+const mongoose = require("mongoose");
 const Post = require("../models/PostModel");
-
 const nodemailer = require("nodemailer");
 const config = require("../config/config");
+const logger = require("../utils/logger");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -11,66 +12,81 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-module.exports = transporter;
-
-const showPosts = async (req, res) => {
+const showPosts = async (req, res, next) => {
   try {
-    const posts = await Post.find().sort({ createdAt: -1 });
-    res.render("blog", { posts });
+    const page = Math.max(1, parseInt(req.query.page || "1", 10));
+    const limit = Math.max(
+      1,
+      Math.min(50, parseInt(req.query.limit || "10", 10)),
+    );
+    const skip = (page - 1) * limit;
+
+    const [posts, total] = await Promise.all([
+      Post.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Post.countDocuments(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.render("blog", {
+      posts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
+    });
   } catch (err) {
-    console.log(err);
-    res.status(500).send("Error fetching posts");
+    next(err);
   }
 };
-const mongoose = require("mongoose");
 
-const showSinglePost = async (req, res) => {
+const showSinglePost = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // ✅ VERY IMPORTANT
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).send("Invalid post id");
+      const err = new Error("Invalid post id");
+      err.statusCode = 400;
+      return next(err);
     }
 
     const post = await Post.findById(id);
-
     if (!post) {
-      return res.status(404).send("Post not found");
+      const err = new Error("Post not found");
+      err.statusCode = 404;
+      return next(err);
     }
 
     res.render("post", { post });
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Error fetching post");
+    next(err);
   }
 };
 
-const addComment = async (req, res) => {
+const addComment = async (req, res, next) => {
   try {
     const postId = req.params.id;
     const { name, comment, email } = req.body;
 
     const post = await Post.findById(postId);
     if (!post) {
-      return res.status(404).json({
-        success: false,
-        message: "Post not found",
-      });
+      const err = new Error("Post not found");
+      err.statusCode = 404;
+      return next(err);
     }
 
     const newComment = {
       name: name || "Anonymous",
-      email: email, // ✅ Email bhi save karna hai
+      email,
       text: comment,
-      replies: [], // ✅ Important for replies
+      replies: [],
     };
 
     post.comments.push(newComment);
-
     await post.save();
 
-    // ✅ Last added comment ka id nikal lo
     const savedComment = post.comments[post.comments.length - 1];
 
     res.json({
@@ -78,30 +94,32 @@ const addComment = async (req, res) => {
       name: savedComment.name,
       email: savedComment.email,
       comment: savedComment.text,
-      postId: post._id, // ✅ Needed for reply form
-      commentId: savedComment._id, // ✅ Very important
+      postId: post._id,
+      commentId: savedComment._id,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      success: false,
-      message: "Error adding comment",
-    });
+    next(err);
   }
 };
 
-const addReply = async (req, res) => {
+const addReply = async (req, res, next) => {
   try {
     const { postId, commentId, name, reply } = req.body;
 
     const post = await Post.findById(postId);
-    const comment = post.comments.id(commentId);
-
-    if (!comment) {
-      return res.json({ success: false });
+    if (!post) {
+      const err = new Error("Post not found");
+      err.statusCode = 404;
+      return next(err);
     }
 
-    // Reply push karo
+    const comment = post.comments.id(commentId);
+    if (!comment) {
+      const err = new Error("Comment not found");
+      err.statusCode = 404;
+      return next(err);
+    }
+
     comment.replies.push({
       name: name || "Anonymous",
       text: reply,
@@ -109,24 +127,27 @@ const addReply = async (req, res) => {
 
     await post.save();
 
-    // 🔥 EMAIL SEND KARO
     if (comment.email) {
-      await transporter.sendMail({
-        from: config.emailUser,
-        to: comment.email,
-        subject: "Someone replied to your comment 💬",
-        html: `
-          <h3>Hello ${comment.name},</h3>
-          <p><b>${name || "Someone"}</b> replied to your comment:</p>
-          <p style="background:#f2f2f2;padding:10px;border-radius:5px;">
-            ${reply}
-          </p>
-          <br>
-          <a href="http://localhost:3000/post/${postId}">
-            View Discussion
-          </a>
-        `,
-      });
+      try {
+        await transporter.sendMail({
+          from: config.emailUser,
+          to: comment.email,
+          subject: "Someone replied to your comment 💬",
+          html: `
+            <h3>Hello ${comment.name},</h3>
+            <p><b>${name || "Someone"}</b> replied to your comment:</p>
+            <p style="background:#f2f2f2;padding:10px;border-radius:5px;">
+              ${reply}
+            </p>
+            <br>
+            <a href="http://localhost:3000/post/${postId}">
+              View Discussion
+            </a>
+          `,
+        });
+      } catch (emailErr) {
+        logger.warn("Failed to send reply email", { error: emailErr });
+      }
     }
 
     res.json({
@@ -135,9 +156,87 @@ const addReply = async (req, res) => {
       reply: reply,
     });
   } catch (err) {
-    console.error(err);
-    res.json({ success: false });
+    next(err);
   }
 };
 
-module.exports = { showPosts, showSinglePost, addComment, addReply };
+const updateComment = async (req, res, next) => {
+  try {
+    const { postId, commentId } = req.params;
+    const { comment } = req.body;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      const err = new Error("Post not found");
+      err.statusCode = 404;
+      return next(err);
+    }
+
+    const existingComment = post.comments.id(commentId);
+    if (!existingComment) {
+      const err = new Error("Comment not found");
+      err.statusCode = 404;
+      return next(err);
+    }
+
+    // Allow update if user is admin or comment author
+    const isAdmin = req.user?.role === "admin";
+    const isAuthor = req.user?.email === existingComment.email;
+    if (!isAdmin && !isAuthor) {
+      const err = new Error("Forbidden");
+      err.statusCode = 403;
+      return next(err);
+    }
+
+    existingComment.text = comment;
+    await post.save();
+
+    res.json({ success: true, comment: existingComment });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteComment = async (req, res, next) => {
+  try {
+    const { postId, commentId } = req.params;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      const err = new Error("Post not found");
+      err.statusCode = 404;
+      return next(err);
+    }
+
+    const existingComment = post.comments.id(commentId);
+    if (!existingComment) {
+      const err = new Error("Comment not found");
+      err.statusCode = 404;
+      return next(err);
+    }
+
+    const isAdmin = req.user?.role === "admin";
+    const isAuthor = req.user?.email === existingComment.email;
+    if (!isAdmin && !isAuthor) {
+      const err = new Error("Forbidden");
+      err.statusCode = 403;
+      return next(err);
+    }
+
+    existingComment.remove();
+    await post.save();
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  showPosts,
+  showSinglePost,
+  addComment,
+  addReply,
+  updateComment,
+  deleteComment,
+};

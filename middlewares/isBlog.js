@@ -1,4 +1,5 @@
 const BlogSetting = require("../models/blogSettingModel");
+const logger = require("../utils/logger");
 
 const isBlog = async (req, res, next) => {
   try {
@@ -11,8 +12,8 @@ const isBlog = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error("Error checking blog settings:", error);
-    return next(error); // IMPORTANT
+    logger.error("Error checking blog settings", { error });
+    return next(error);
   }
 };
 

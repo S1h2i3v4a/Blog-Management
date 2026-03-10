@@ -68,7 +68,7 @@
         <% if (posts && posts.length) { %>
           <div class="row">
             <% posts.forEach((post) => { %>
-              <div class="col-md-4">
+              <div class="col-md-4" data-post-id="<%= post._id %>">
                 <div class="card mb-4">
                   <% if (post.imageUrl) { %>
                     <img
@@ -80,6 +80,20 @@
                   <div class="card-body">
                     <h5 class="card-title"><%= post.title %></h5>
                     <p class="card-text"><%= post.content ? post.content.substring(0, 100) : "" %>...</p>
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+                      <div class="d-flex gap-1 align-items-center">
+                        <button class="btn btn-sm btn-outline-success like-btn" data-id="<%= post._id %>">
+                          👍 <span class="like-count"><%= post.likes || 0 %></span>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger dislike-btn" data-id="<%= post._id %>">
+                          👎 <span class="dislike-count"><%= post.dislikes || 0 %></span>
+                        </button>
+                      </div>
+                      <div class="d-flex gap-2">
+                        <a href="/edit-post/<%= post._id %>" class="btn btn-sm btn-primary">Edit</a>
+                        <button class="btn btn-sm btn-danger delete-post" data-id="<%= post._id %>">Delete</button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -95,5 +109,60 @@
     <script src="js/popper.js"></script>
     <script src="js/bootstrap.min.js"></script>
     <script src="js/main.js"></script>
+
+    <script>
+      // AJAX delete post (expects a DELETE route like /delete-post/:id)
+      document.addEventListener("click", async (event) => {
+        const btn = event.target.closest(".delete-post");
+        if (!btn) return;
+
+        const postId = btn.getAttribute("data-id");
+        if (!postId) return;
+
+        if (!confirm("Delete this post?")) return;
+
+        try {
+          const res = await fetch(`/delete-post/${postId}`, { method: "DELETE" });
+          const json = await res.json();
+
+          if (!res.ok || !json.success) {
+            const message = json?.error || "Failed to delete post.";
+            return alert(message);
+          }
+
+          // Remove the post card from the UI (remove the column wrapper so grid reflows)
+          const col = btn.closest(".col-md-4");
+          if (col) col.remove();
+        } catch (error) {
+          console.error("Delete request failed", error);
+          alert("Could not delete post. Try again.");
+        }
+      });
+    </script>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+
+      document.addEventListener("click", (event) => {
+        const likeBtn = event.target.closest(".like-btn");
+        const dislikeBtn = event.target.closest(".dislike-btn");
+        if (!likeBtn && !dislikeBtn) return;
+
+        const postId = (likeBtn || dislikeBtn).getAttribute("data-id");
+        if (!postId) return;
+
+        socket.emit(likeBtn ? "post:like" : "post:dislike", { postId });
+      });
+
+      socket.on("post:updated", (data) => {
+        const card = document.querySelector(`[data-post-id="${data.postId}"]`);
+        if (!card) return;
+        const likeCount = card.querySelector(".like-count");
+        const dislikeCount = card.querySelector(".dislike-count");
+        if (likeCount) likeCount.textContent = data.likes;
+        if (dislikeCount) dislikeCount.textContent = data.dislikes;
+      });
+    </script>
   </body>
 </html>

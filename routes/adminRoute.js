@@ -1,14 +1,18 @@
 const express = require("express");
 const path = require("path");
 const multer = require("multer");
+const cookieParser = require("cookie-parser");
 
 const admin_route = express();
 
 admin_route.use(express.json());
 admin_route.use(express.urlencoded({ extended: true }));
+admin_route.use(cookieParser());
 
 const session = require("express-session");
 const config = require("../config/config");
+
+const { attachUser, requireAdmin } = require("../middlewares/auth");
 
 admin_route.use(
   session({
@@ -18,6 +22,7 @@ admin_route.use(
     cookie: { secure: false },
   }),
 );
+
 admin_route.set("view engine", "ejs");
 admin_route.set("views", path.join(__dirname, "../views"));
 
@@ -32,7 +37,10 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 const adminController = require("../controllers/adminController");
-const adminAuth = require("../middlewares/adminLoginAuth");
+const userController = require("../controllers/userController");
+
+admin_route.use(express.static(path.join(__dirname, "../public")));
+admin_route.use(attachUser);
 
 admin_route.get("/blogSetup", adminController.blogSetup);
 admin_route.post(
@@ -40,12 +48,10 @@ admin_route.post(
   upload.single("blog_logo"),
   adminController.blogSetupSave,
 );
-const userController = require("../controllers/userController");
 
 admin_route.post(
   "/upload-post-image",
-
-  adminAuth.isLogin,
+  requireAdmin,
   upload.single("image"),
   (req, res) => {
     res.json({
@@ -54,12 +60,15 @@ admin_route.post(
     });
   },
 );
-admin_route.post(
-  "/create-post",
-  adminAuth.isLogin,
-  upload.none(), // 🔥 THIS FIXES req.body
-  userController.createPost,
+
+admin_route.post("/create-post", requireAdmin, userController.createPost);
+admin_route.get("/dashboard", requireAdmin, adminController.getDashboard);
+admin_route.get("/edit-post/:id", requireAdmin, adminController.loadEditPost);
+admin_route.patch("/update-post/:id", requireAdmin, adminController.updatePost);
+admin_route.delete(
+  "/delete-post/:id",
+  requireAdmin,
+  adminController.deletePost,
 );
-admin_route.get("/dashboard", adminAuth.isLogin, adminController.getDashboard);
 
 module.exports = admin_route;
