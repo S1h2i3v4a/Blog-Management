@@ -60,5 +60,6 @@ admin_route.post(
   upload.none(), // 🔥 THIS FIXES req.body
   userController.createPost,
 );
+admin_route.get("/dashboard", adminAuth.isLogin, adminController.getDashboard);
 
 module.exports = admin_route;

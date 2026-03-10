@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 
+const path = require("path");
 const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -18,6 +19,9 @@ mongoose.connect(
 
 // Middleware
 app.use(isBlog);
+
+// Serve static assets (CSS/JS/images)
+app.use(express.static(path.join(__dirname, "public")));
 
 // Routes
 app.use("/", adminRoute);

@@ -1,6 +1,7 @@
 const BlogSetting = require("../models/blogSettingModel");
 const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
+const Post = require("../models/PostModel");
 
 /* secure password */
 const securePassword = async (password) => {
@@ -55,8 +56,19 @@ const blogSetupSave = async (req, res) => {
     res.status(500).send("Error saving blog setup");
   }
 };
+const getDashboard = async (req, res) => {
+  try {
+    // No author field exists on the post schema, so don't use populate here.
+    const posts = await Post.find({});
+    res.render("admin/dashboard", { posts });
+  } catch (error) {
+    console.error("Error loading dashboard:", error);
+    res.status(500).send("Error loading dashboard");
+  }
+};
 
 module.exports = {
   blogSetup,
   blogSetupSave,
+  getDashboard,
 };
