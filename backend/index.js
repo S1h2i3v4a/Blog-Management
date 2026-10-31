@@ -19,14 +19,33 @@ const blogRoute = require("./routes/blogRoute");
 const app = express();
 
 // MongoDB Connection
-const mongoURI =
-  process.env.MONGODB_URI ||
+const mongoURI = process.env.MONGODB_URI;
+
+if (!mongoURI) {
+  logger.warn(
+    "⚠️ MONGODB_URI is not set in environment variables! Using fallback. Please configure MONGODB_URI in your Render service environment."
+  );
+}
+
+const connectionString =
+  mongoURI ||
   "mongodb+srv://shivamkeshari990_db_user:3SffPzK5NP9lnfWK@cluster0.cmvjqhr.mongodb.net/";
 
 mongoose
-  .connect(mongoURI)
+  .connect(connectionString, {
+    serverSelectionTimeoutMS: 5000,
+  })
   .then(() => logger.info("MongoDB connected successfully"))
-  .catch((err) => logger.error("MongoDB connection error", { error: err }));
+  .catch((err) => {
+    logger.error("MongoDB connection error", {
+      message: err.message,
+      code: err.code,
+      hint:
+        err.code === "ENOTFOUND"
+          ? "Host not found: Your MongoDB Atlas cluster might be PAUSED or deleted. Please visit cloud.mongodb.com and click Resume on your cluster."
+          : "Check your MongoDB URI credentials and IP whitelist in Atlas.",
+    });
+  });
 
 // CORS configuration - allow all Vercel domains, localhost, and custom frontend
 const allowedOrigins = [
