@@ -74,7 +74,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
 
 // Standard middleware
 app.use(express.json());
