@@ -88,9 +88,28 @@ app.use(express.static(path.join(__dirname, "public")));
 // Blog check middleware
 app.use("/api", isBlog);
 
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+// Health check & Keep-alive endpoint (Keeps Render awake + keeps MongoDB Atlas active)
+app.get("/health", async (req, res) => {
+  try {
+    let dbStatus = "disconnected";
+    if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
+      await mongoose.connection.db.admin().ping();
+      dbStatus = "connected";
+    }
+    res.json({
+      status: "ok",
+      database: dbStatus,
+      uptimeSeconds: Math.floor(process.uptime()),
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    res.json({
+      status: "ok",
+      database: "connecting",
+      error: err.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // API Routes
