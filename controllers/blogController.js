@@ -140,7 +140,7 @@ const addReply = async (req, res, next) => {
               ${reply}
             </p>
             <br>
-            <a href="http://localhost:3000/post/${postId}">
+            <a href="${process.env.BASE_URL || 'http://localhost:3000'}/post/${postId}">
               View Discussion
             </a>
           `,

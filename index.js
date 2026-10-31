@@ -20,8 +20,12 @@ const blogRoute = require("./routes/blogRoute");
 
 // MongoDB Connection
 mongoose.connect(
-  "mongodb+srv://shivamkeshari990_db_user:3SffPzK5NP9lnfWK@cluster0.cmvjqhr.mongodb.net/",
+  process.env.MONGODB_URI || "mongodb+srv://shivamkeshari990_db_user:3SffPzK5NP9lnfWK@cluster0.cmvjqhr.mongodb.net/",
 );
+
+// View Engine Setup
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
 
 // Middleware
 app.use(express.json());
@@ -134,6 +138,7 @@ io.on("connection", (socket) => {
 app.use(errorHandler);
 
 // Start Server
-server.listen(3000, () => {
-  logger.info("Server is running on port 3000");
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  logger.info(`Server is running on port ${PORT}`);
 });

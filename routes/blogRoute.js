@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const { body } = require("express-validator");
 
 const blogController = require("../controllers/blogController");
@@ -8,8 +9,8 @@ const validateRequest = require("../middlewares/validateRequest");
 const blog_route = express();
 
 blog_route.set("view engine", "ejs");
-blog_route.set("views", "./views");
-blog_route.use(express.static("public"));
+blog_route.set("views", path.join(__dirname, "../views"));
+blog_route.use(express.static(path.join(__dirname, "../public")));
 blog_route.use(attachUser);
 
 blog_route.get("/", blogController.showPosts);
