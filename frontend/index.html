@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blog Management System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { background-color: #f8f9fa; }
+    .card-img-top { height: 200px; object-fit: cover; }
+    .tag { background: #eef2ff; color: #4f46e5; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-right: 4px; }
+  </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+  <!-- NAVBAR -->
+  <header class="p-3 text-bg-dark">
+    <div class="container">
+      <div class="d-flex flex-wrap align-items-center justify-content-between">
+        <a href="index.html" class="d-flex align-items-center mb-2 mb-lg-0 text-white text-decoration-none">
+          <span class="fs-4 fw-semibold"><i class="bi bi-journal-text me-2"></i>Blog Management System</span>
+        </a>
+
+        <ul class="nav col-12 col-lg-auto mb-2 justify-content-center mb-md-0">
+          <li><a href="index.html" class="nav-link px-2 text-white">Homepage</a></li>
+          <li id="navDashboard" style="display:none;"><a href="dashboard.html" class="nav-link px-2 text-white">Dashboard</a></li>
+          <li id="navCreatePost" style="display:none;"><a href="create-post.html" class="nav-link px-2 text-white">Create Post</a></li>
+        </ul>
+
+        <div class="text-end" id="authNavButtons">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <main class="container my-5 flex-grow-1">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="fw-bold mb-0">All Posts</h2>
+      <div id="statusIndicator" class="text-muted small"></div>
+    </div>
+
+    <!-- Posts Grid -->
+    <div id="postsContainer" class="row">
+      <div class="col-12 text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="text-muted mt-2">Loading posts...</p>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <nav id="paginationContainer" aria-label="Post pagination" class="mt-4" style="display:none;">
+      <ul class="pagination justify-content-center" id="paginationList"></ul>
+    </nav>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="py-4 mt-auto border-top bg-white">
+    <div class="container">
+      <ul class="nav justify-content-center pb-3 mb-3">
+        <li class="nav-item"><a href="index.html" class="nav-link px-2 text-body-secondary">Home</a></li>
+        <li class="nav-item"><a href="dashboard.html" class="nav-link px-2 text-body-secondary">Admin Dashboard</a></li>
+        <li class="nav-item"><a href="blog-setup.html" class="nav-link px-2 text-body-secondary">Setup</a></li>
+      </ul>
+      <p class="text-center text-body-secondary mb-0">© 2026 <strong>Blog Management System</strong>. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    // Render Auth buttons
+    function updateNav() {
+      const authDiv = document.getElementById("authNavButtons");
+      const navDashboard = document.getElementById("navDashboard");
+      const navCreatePost = document.getElementById("navCreatePost");
+
+      if (isLoggedIn()) {
+        const user = getUser();
+        if (isAdmin()) {
+          navDashboard.style.display = "block";
+          navCreatePost.style.display = "block";
+        }
+        authDiv.innerHTML = `
+          <a href="profile.html" class="btn btn-outline-light me-2"><i class="bi bi-person"></i> ${user?.name || "Profile"}</a>
+          <button onclick="logout()" class="btn btn-danger">Logout</button>
+        `;
+      } else {
+        authDiv.innerHTML = `
+          <a href="login.html" class="btn btn-outline-light me-2">Login</a>
+          <a href="register.html" class="btn btn-warning">Sign up</a>
+        `;
+      }
+    }
+    updateNav();
+
+    // Helper for image URLs
+    function getImageUrl(url) {
+      if (!url) return null;
+      if (url.startsWith("http://") || url.startsWith("https://")) return url;
+      return API_BASE_URL + url;
+    }
+
+    // Load Posts
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentPage = parseInt(urlParams.get("page")) || 1;
+
+    async function loadPosts(page = 1) {
+      const container = document.getElementById("postsContainer");
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/blog/posts?page=${page}&limit=9`);
+        const data = await res.json();
+
+        if (!data.success || !data.posts || data.posts.length === 0) {
+          container.innerHTML = `<div class="col-12 text-center text-muted py-5"><h4>No posts found.</h4><p>Check back later or create one from the dashboard!</p></div>`;
+          return;
+        }
+
+        container.innerHTML = data.posts.map(post => {
+          const imgUrl = getImageUrl(post.imageUrl);
+          const dateStr = post.createdAt ? new Date(post.createdAt).toDateString() : "";
+          const previewText = post.content ? (post.content.length > 100 ? post.content.substring(0, 100) + "..." : post.content) : "";
+
+          return `
+            <div class="col-md-4 mb-4" id="post-${post._id}">
+              <div class="card h-100 shadow-sm border-0">
+                ${imgUrl ? `<img src="${imgUrl}" class="card-img-top" alt="${post.title}">` : ""}
+                <div class="card-body">
+                  <h5 class="card-title fw-bold">${post.title}</h5>
+                  <p class="card-text text-muted">${previewText}</p>
+                </div>
+                <div class="card-footer bg-transparent border-top-0 d-flex justify-content-between align-items-center">
+                  <small class="text-muted">${dateStr}</small>
+                  <a class="btn btn-sm btn-primary" href="post.html?id=${post._id}">Read More</a>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        // Render Pagination
+        renderPagination(data.pagination);
+
+      } catch (err) {
+        console.error("Error loading posts:", err);
+        container.innerHTML = `
+          <div class="col-12 text-center text-danger py-5">
+            <p>Could not connect to backend at <code>${API_BASE_URL}</code>.</p>
+            <small class="text-muted">Ensure your Render backend is running!</small>
+          </div>
+        `;
+      }
+    }
+
+    function renderPagination(pagination) {
+      if (!pagination || pagination.totalPages <= 1) return;
+      const nav = document.getElementById("paginationContainer");
+      const list = document.getElementById("paginationList");
+      nav.style.display = "block";
+
+      let html = "";
+      html += `<li class="page-item ${pagination.page <= 1 ? "disabled" : ""}">
+        <a class="page-link" href="index.html?page=${pagination.page - 1}">Previous</a>
+      </li>`;
+
+      for (let p = 1; p <= pagination.totalPages; p++) {
+        html += `<li class="page-item ${p === pagination.page ? "active" : ""}">
+          <a class="page-link" href="index.html?page=${p}">${p}</a>
+        </li>`;
+      }
+
+      html += `<li class="page-item ${pagination.page >= pagination.totalPages ? "disabled" : ""}">
+        <a class="page-link" href="index.html?page=${pagination.page + 1}">Next</a>
+      </li>`;
+
+      list.innerHTML = html;
+    }
+
+    loadPosts(currentPage);
+
+    // Socket.io for Real-time posts
+    try {
+      const socket = io(API_BASE_URL);
+      socket.on("new-post", (post) => {
+        const container = document.getElementById("postsContainer");
+        if (!container) return;
+        const imgUrl = getImageUrl(post.imageUrl);
+        const dateStr = post.createdAt ? new Date(post.createdAt).toDateString() : "";
+        const previewText = post.content ? (post.content.length > 100 ? post.content.substring(0, 100) + "..." : post.content) : "";
+
+        const cardHtml = `
+          <div class="col-md-4 mb-4" id="post-${post._id}">
+            <div class="card h-100 shadow-sm border-0 border-start border-primary border-4">
+              ${imgUrl ? `<img src="${imgUrl}" class="card-img-top" alt="${post.title}">` : ""}
+              <div class="card-body">
+                <span class="badge bg-success mb-2">New</span>
+                <h5 class="card-title fw-bold">${post.title}</h5>
+                <p class="card-text text-muted">${previewText}</p>
+              </div>
+              <div class="card-footer bg-transparent border-top-0 d-flex justify-content-between align-items-center">
+                <small class="text-muted">${dateStr}</small>
+                <a class="btn btn-sm btn-primary" href="post.html?id=${post._id}">Read More</a>
+              </div>
+            </div>
+          </div>
+        `;
+        container.insertAdjacentHTML("afterbegin", cardHtml);
+      });
+    } catch (e) {
+      console.warn("Socket.io could not connect", e);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>View Post - Blog Management System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { background-color: #f8f9fa; }
+    .post-img { max-height: 420px; width: 100%; object-fit: cover; border-radius: 8px; }
+    .tag { background: #eef2ff; color: #4f46e5; padding: 4px 12px; border-radius: 20px; font-size: 13px; margin-right: 6px; }
+    .comment-box { background: #fff; border-radius: 12px; }
+  </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+  <!-- NAVBAR -->
+  <header class="p-3 text-bg-dark">
+    <div class="container">
+      <div class="d-flex flex-wrap align-items-center justify-content-between">
+        <a href="index.html" class="d-flex align-items-center mb-2 mb-lg-0 text-white text-decoration-none">
+          <span class="fs-4 fw-semibold"><i class="bi bi-journal-text me-2"></i>Blog Management System</span>
+        </a>
+        <div class="text-end" id="authNavButtons"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- POST DETAILS -->
+  <main class="container my-5 flex-grow-1">
+    <div class="row justify-content-center">
+      <div class="col-lg-8" id="postWrapper">
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="text-muted mt-2">Loading post...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="py-4 mt-auto border-top bg-white">
+    <div class="container text-center">
+      <p class="text-muted mb-0">© 2026 Blog Management System</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    function updateNav() {
+      const authDiv = document.getElementById("authNavButtons");
+      if (isLoggedIn()) {
+        const user = getUser();
+        authDiv.innerHTML = `
+          <a href="index.html" class="btn btn-outline-light me-2">All Posts</a>
+          <a href="profile.html" class="btn btn-outline-light me-2">${user?.name || "Profile"}</a>
+          <button onclick="logout()" class="btn btn-danger">Logout</button>
+        `;
+      } else {
+        authDiv.innerHTML = `
+          <a href="index.html" class="btn btn-outline-light me-2">All Posts</a>
+          <a href="login.html" class="btn btn-outline-light me-2">Login</a>
+          <a href="register.html" class="btn btn-warning">Sign up</a>
+        `;
+      }
+    }
+    updateNav();
+
+    function getImageUrl(url) {
+      if (!url) return null;
+      if (url.startsWith("http://") || url.startsWith("https://")) return url;
+      return API_BASE_URL + url;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const postId = urlParams.get("id");
+
+    let socket;
+    try {
+      socket = io(API_BASE_URL);
+      socket.on("comment:updated", (data) => {
+        const commentEl = document.querySelector(`[data-comment-id="${data.commentId}"]`);
+        if (!commentEl) return;
+        const likeCount = commentEl.querySelector(".comment-like-count");
+        const dislikeCount = commentEl.querySelector(".comment-dislike-count");
+        if (likeCount) likeCount.textContent = data.likes;
+        if (dislikeCount) dislikeCount.textContent = data.dislikes;
+      });
+    } catch (e) {
+      console.warn("Socket init error:", e);
+    }
+
+    async function loadPost() {
+      const wrapper = document.getElementById("postWrapper");
+      if (!postId) {
+        wrapper.innerHTML = `<div class="alert alert-danger">No Post ID provided. <a href="index.html">Go to Homepage</a></div>`;
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/blog/post/${postId}`);
+        const data = await res.json();
+
+        if (!data.success || !data.post) {
+          wrapper.innerHTML = `<div class="alert alert-danger">${data.message || "Post not found"}. <a href="index.html">Back to Home</a></div>`;
+          return;
+        }
+
+        const post = data.post;
+        document.title = `${post.title} - Blog Management System`;
+
+        const imgUrl = getImageUrl(post.imageUrl);
+        const tagsHtml = (post.tags && post.tags.length)
+          ? post.tags.map(t => `<span class="tag">#${t}</span>`).join("")
+          : '<span class="tag">#general</span>';
+        const dateStr = post.createdAt ? new Date(post.createdAt).toDateString() : "";
+
+        // Build HTML
+        wrapper.innerHTML = `
+          <!-- POST CONTENT -->
+          <div class="card shadow-sm border-0 mb-4">
+            ${imgUrl ? `<img src="${imgUrl}" class="post-img p-2" alt="${post.title}">` : ""}
+            <div class="card-body p-4">
+              <h1 class="fw-bold mb-3">${post.title}</h1>
+              <div class="mb-3">${tagsHtml}</div>
+              <p class="text-muted mb-4"><i class="bi bi-calendar3 me-1"></i> ${dateStr}</p>
+              <div class="fs-5" style="line-height:1.8; white-space: pre-wrap;">${post.content}</div>
+            </div>
+          </div>
+
+          <!-- COMMENTS BOX -->
+          <div class="comment-box p-4 shadow-sm mb-5">
+            <h4 class="mb-4"><i class="bi bi-chat-dots me-2"></i>Comments</h4>
+            <div id="commentList">
+              ${renderComments(post.comments || [])}
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Add Comment Form -->
+            <h5>Leave a Comment</h5>
+            <form id="commentForm">
+              <div class="mb-3">
+                <label class="form-label">Name</label>
+                <input class="form-control" name="name" required placeholder="Your name">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" name="email" required placeholder="your@email.com">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Comment</label>
+                <textarea class="form-control" rows="3" name="comment" required placeholder="Write your thoughts..."></textarea>
+              </div>
+              <button class="btn btn-primary" type="submit"><i class="bi bi-send me-1"></i> Add Comment</button>
+            </form>
+          </div>
+        `;
+
+        setupCommentHandlers();
+
+      } catch (err) {
+        console.error("Error loading post:", err);
+        wrapper.innerHTML = `<div class="alert alert-danger">Error loading post. Ensure backend is running!</div>`;
+      }
+    }
+
+    function renderComments(comments) {
+      if (!comments.length) {
+        return `<p class="text-muted" id="noCommentsMsg">No comments yet. Be the first to comment!</p>`;
+      }
+      return comments.map(c => `
+        <div class="mb-3 border-bottom pb-3" data-comment-id="${c._id}">
+          <div class="d-flex justify-content-between align-items-center">
+            <strong>${c.name || "Anonymous"}</strong>
+            <small class="text-muted">${c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ""}</small>
+          </div>
+          <p class="mb-2 text-secondary mt-1">${c.text || ""}</p>
+
+          <div class="d-flex gap-2 align-items-center mb-2">
+            <button class="btn btn-sm btn-outline-success comment-like" data-post-id="${postId}" data-comment-id="${c._id}">
+              👍 <span class="comment-like-count">${c.likes || 0}</span>
+            </button>
+            <button class="btn btn-sm btn-outline-danger comment-dislike" data-post-id="${postId}" data-comment-id="${c._id}">
+              👎 <span class="comment-dislike-count">${c.dislikes || 0}</span>
+            </button>
+          </div>
+
+          <!-- Reply Form -->
+          <form class="replyForm mt-2" data-comment-id="${c._id}">
+            <div class="input-group input-group-sm mb-2">
+              <input type="text" class="form-control" name="name" placeholder="Your name (optional)" style="max-width: 140px;">
+              <input type="text" class="form-control" name="reply" placeholder="Write a reply..." required>
+              <button class="btn btn-outline-primary" type="submit">Reply</button>
+            </div>
+          </form>
+
+          <!-- Replies List -->
+          <div class="repliesList">
+            ${(c.replies || []).map(r => `
+              <div class="ms-4 mt-2 p-2 bg-light rounded border-start border-3 border-primary">
+                <strong>${r.name || "Anonymous"}</strong>
+                <p class="mb-0 text-muted small">${r.text || ""}</p>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function setupCommentHandlers() {
+      // Add Comment Form submit
+      const commentForm = document.getElementById("commentForm");
+      if (commentForm) {
+        commentForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const name = commentForm.name.value.trim();
+          const email = commentForm.email.value.trim();
+          const comment = commentForm.comment.value.trim();
+
+          if (!name || !email || !comment) return;
+
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/blog/post/${postId}/comment`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name, email, text: comment })
+            });
+            const data = await res.json();
+
+            if (data.success && data.comment) {
+              const noMsg = document.getElementById("noCommentsMsg");
+              if (noMsg) noMsg.remove();
+
+              const commentList = document.getElementById("commentList");
+              const div = document.createElement("div");
+              div.className = "mb-3 border-bottom pb-3";
+              div.setAttribute("data-comment-id", data.comment._id);
+              div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                  <strong>${data.comment.name}</strong>
+                  <small class="text-muted">Just now</small>
+                </div>
+                <p class="mb-2 text-secondary mt-1">${data.comment.text}</p>
+                <div class="d-flex gap-2 align-items-center mb-2">
+                  <button class="btn btn-sm btn-outline-success comment-like" data-post-id="${postId}" data-comment-id="${data.comment._id}">
+                    👍 <span class="comment-like-count">0</span>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger comment-dislike" data-post-id="${postId}" data-comment-id="${data.comment._id}">
+                    👎 <span class="comment-dislike-count">0</span>
+                  </button>
+                </div>
+                <form class="replyForm mt-2" data-comment-id="${data.comment._id}">
+                  <div class="input-group input-group-sm mb-2">
+                    <input type="text" class="form-control" name="name" placeholder="Your name (optional)" style="max-width: 140px;">
+                    <input type="text" class="form-control" name="reply" placeholder="Write a reply..." required>
+                    <button class="btn btn-outline-primary" type="submit">Reply</button>
+                  </div>
+                </form>
+                <div class="repliesList"></div>
+              `;
+              commentList.appendChild(div);
+              commentForm.reset();
+            } else {
+              alert(data.message || "Failed to add comment.");
+            }
+          } catch (err) {
+            console.error("Comment submit error:", err);
+            alert("Error sending comment. Try again.");
+          }
+        });
+      }
+
+      // Delegate Click and Submit for commentList
+      const commentList = document.getElementById("commentList");
+      if (commentList) {
+        // Like / Dislike click
+        commentList.addEventListener("click", (e) => {
+          const likeBtn = e.target.closest(".comment-like");
+          const dislikeBtn = e.target.closest(".comment-dislike");
+          if (!likeBtn && !dislikeBtn) return;
+
+          const btn = likeBtn || dislikeBtn;
+          const pId = btn.getAttribute("data-post-id");
+          const cId = btn.getAttribute("data-comment-id");
+          const eventName = likeBtn ? "comment:like" : "comment:dislike";
+
+          if (socket) {
+            socket.emit(eventName, { postId: pId, commentId: cId });
+          }
+        });
+
+        // Reply submit
+        commentList.addEventListener("submit", async (e) => {
+          const form = e.target.closest(".replyForm");
+          if (!form) return;
+          e.preventDefault();
+
+          const cId = form.getAttribute("data-comment-id");
+          const name = form.name.value.trim() || "Anonymous";
+          const reply = form.reply.value.trim();
+          if (!reply) return;
+
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/blog/post/${postId}/reply`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ commentId: cId, name, text: reply })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              const repliesList = form.parentElement.querySelector(".repliesList");
+              const replyDiv = document.createElement("div");
+              replyDiv.className = "ms-4 mt-2 p-2 bg-light rounded border-start border-3 border-primary";
+              replyDiv.innerHTML = `
+                <strong>${name}</strong>
+                <p class="mb-0 text-muted small">${reply}</p>
+              `;
+              repliesList.appendChild(replyDiv);
+              form.reset();
+            } else {
+              alert(data.message || "Failed to post reply.");
+            }
+          } catch (err) {
+            console.error("Reply error:", err);
+            alert("Could not post reply.");
+          }
+        });
+      }
+    }
+
+    loadPost();
+  </script>
+</body>
+</html>

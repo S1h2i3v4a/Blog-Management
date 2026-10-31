@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create Post - Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8f9fa; }
+  </style>
+</head>
+<body class="bg-light">
+
+  <div class="container my-5" style="max-width: 760px;">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-primary text-white py-3">
+        <h4 class="mb-0 fw-bold">Create New Blog Post</h4>
+      </div>
+
+      <div class="card-body p-4">
+        <div id="alertBox"></div>
+
+        <form id="createPostForm">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Title</label>
+            <input type="text" name="title" class="form-control" required placeholder="Enter post title...">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Content</label>
+            <textarea name="content" class="form-control" rows="6" required placeholder="Write your post content here..."></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Post Image (Upload from Device)</label>
+            <input type="file" id="imageFileInput" class="form-control" accept="image/*">
+            <div id="uploadStatus" class="small mt-1 text-muted"></div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">OR Paste Image URL</label>
+            <input type="text" name="imageUrl" id="imageUrlInput" class="form-control" placeholder="https://example.com/image.jpg">
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Tags (comma separated)</label>
+            <input type="text" name="tags" class="form-control" placeholder="technology, web, javascript">
+          </div>
+
+          <div class="d-flex align-items-center">
+            <button class="btn btn-primary px-4 py-2" type="submit" id="submitBtn">Publish Post</button>
+            <a href="dashboard.html" class="btn btn-secondary ms-2 px-3 py-2">Back to Dashboard</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    if (!isLoggedIn() || !isAdmin()) {
+      alert("Admin access required.");
+      window.location.href = "login.html";
+    }
+
+    const form = document.getElementById("createPostForm");
+    const alertBox = document.getElementById("alertBox");
+    const fileInput = document.getElementById("imageFileInput");
+    const imageUrlInput = document.getElementById("imageUrlInput");
+    const uploadStatus = document.getElementById("uploadStatus");
+    const submitBtn = document.getElementById("submitBtn");
+
+    // Handle Image Upload
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      uploadStatus.innerHTML = `<span class="text-primary"><span class="spinner-border spinner-border-sm"></span> Uploading image...</span>`;
+
+      const formData = new FormData();
+      formData.append("image", file);
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/admin/upload-post-image`, {
+          method: "POST",
+          headers: authHeaders(),
+          body: formData
+        });
+        const data = await res.json();
+
+        if (data.success && data.imageUrl) {
+          imageUrlInput.value = data.imageUrl;
+          uploadStatus.innerHTML = `<span class="text-success">✓ Image uploaded successfully!</span>`;
+        } else {
+          uploadStatus.innerHTML = `<span class="text-danger">Upload failed: ${data.message || "Unknown error"}</span>`;
+        }
+      } catch (err) {
+        console.error("Upload error:", err);
+        uploadStatus.innerHTML = `<span class="text-danger">Upload error. Ensure backend is running.</span>`;
+      }
+    });
+
+    // Handle Form Submit
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      alertBox.innerHTML = "";
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Publishing...";
+
+      const payload = {
+        title: form.title.value.trim(),
+        content: form.content.value.trim(),
+        imageUrl: imageUrlInput.value.trim(),
+        tags: form.tags.value.trim()
+      };
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/user/create-post`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeaders()
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          alertBox.innerHTML = `<div class="alert alert-success">Post published successfully! Redirecting...</div>`;
+          setTimeout(() => {
+            window.location.href = "dashboard.html";
+          }, 1000);
+        } else {
+          alertBox.innerHTML = `<div class="alert alert-danger">${data.message || "Failed to create post."}</div>`;
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Publish Post";
+        }
+      } catch (err) {
+        console.error("Create post error:", err);
+        alertBox.innerHTML = `<div class="alert alert-danger">Error connecting to backend server.</div>`;
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Publish Post";
+      }
+    });
+  </script>
+</body>
+</html>
